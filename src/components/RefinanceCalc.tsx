@@ -40,7 +40,6 @@ export default function RefinanceCalc() {
   const [name,      setName]      = useState('');
   const [phone,     setPhone]     = useState('');
   const [email,     setEmail]     = useState('');
-  const [leadCaptured, setLeadCaptured] = useState(false);
   const [leadError,    setLeadError]    = useState('');
   const [sending,      setSending]      = useState(false);
   const [sendStatus,   setSendStatus]   = useState<'idle' | 'success' | 'error'>('idle');
@@ -74,8 +73,7 @@ export default function RefinanceCalc() {
     });
     setSendStatus('idle');
     setTimeout(() => {
-      (document.getElementById('refi-results') ?? document.getElementById('refi-results-full'))
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('refi-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 120);
   };
 
@@ -94,7 +92,11 @@ export default function RefinanceCalc() {
   };
 
   const handleSendEmail = async () => {
-    if (!email || !results) return;
+    if (!name.trim() || !phone.trim() || !email.trim() || !results) {
+      setLeadError('נא למלא שם, טלפון ומייל');
+      return;
+    }
+    setLeadError('');
     setSending(true);
     setSendStatus('idle');
     try {
@@ -109,16 +111,6 @@ export default function RefinanceCalc() {
     } finally {
       setSending(false);
     }
-  };
-
-  const handleUnlock = () => {
-    if (!name.trim() || !phone.trim() || !email.trim()) {
-      setLeadError('נא למלא שם, טלפון ומייל כדי לראות את התוצאות');
-      return;
-    }
-    setLeadError('');
-    setLeadCaptured(true);
-    handleSendEmail();
   };
 
   const stepNum = rStep === 'details' ? 1 : 2;
@@ -228,43 +220,9 @@ export default function RefinanceCalc() {
         </motion.div>
       )}
 
-      {/* ── Lead gate (must submit details to reveal results) ── */}
-      {results && !leadCaptured && (
-        <motion.div id="refi-results"
-          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-          className="space-y-4 pt-6 border-t border-[#BDD8EE]">
-
-          <h4 className="text-center text-lg font-bold text-[#1A2C3D]">התוצאות שלך מוכנות!</h4>
-          <p className="text-center text-sm text-[#4D6E88]">השאירו פרטים כדי לצפות בתוצאות המלאות</p>
-
-          <div className="card-premium rounded-2xl p-5 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder="שם מלא" value={name}
-                onChange={e => { setName(e.target.value); setLeadError(''); }}
-                className="input-dark rounded-xl py-2.5 px-3 text-sm" />
-              <input type="tel" placeholder="מס׳ פלאפון" value={phone}
-                onChange={e => { setPhone(e.target.value); setLeadError(''); }}
-                className="input-dark rounded-xl py-2.5 px-3 text-sm" />
-            </div>
-            <input type="email" placeholder="your@email.com" value={email}
-              onChange={e => { setEmail(e.target.value); setLeadError(''); setSendStatus('idle'); }}
-              className="input-dark w-full rounded-xl py-2.5 px-3 text-sm" />
-
-            {leadError && <p className="text-red-600 text-xs text-center">{leadError}</p>}
-
-            <button onClick={handleUnlock}
-              className="btn-gold w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5">
-              <Mail size={14} />
-              הצג את התוצאות שלי
-            </button>
-            <p className="text-[#4D6E88] text-xs text-center">הפרטים נשארים אצלנו בלבד ולא יועברו לגורם שלישי</p>
-          </div>
-        </motion.div>
-      )}
-
       {/* ── Results ── */}
-      {results && leadCaptured && (
-        <motion.div id="refi-results-full"
+      {results && (
+        <motion.div id="refi-results"
           initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
           className="space-y-4 pt-6 border-t border-[#BDD8EE]">
 
@@ -346,15 +304,37 @@ export default function RefinanceCalc() {
             <span>החישוב מבוסס על ריבית משוערת בלבד ואינו כולל עמלות פירעון מוקדם, שמאות או עלויות נלוות למחזור.</span>
           </div>
 
-          {/* Send status */}
-          <div className={cn('flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold',
-            sendStatus === 'success' ? 'bg-emerald-100 text-emerald-700' :
-            sendStatus === 'error'   ? 'bg-red-100 text-red-700' : 'bg-[rgba(201,168,76,0.08)] text-[#4D6E88]'
-          )}>
-            {sending ? <><Loader2 size={14} className="animate-spin" /> שולח סיכום למייל...</> :
-             sendStatus === 'success' ? <><Check size={14} /> הסיכום נשלח למייל שלך</> :
-             sendStatus === 'error'   ? <><AlertTriangle size={14} /> שליחת הסיכום למייל נכשלה, נסו שוב מאוחר יותר</> :
-             null}
+          {/* Send by email */}
+          <div className="card-premium rounded-2xl p-5">
+            <div className="flex items-center gap-2 text-[#1A2C3D] font-bold text-sm mb-1">
+              <Mail size={15} className="text-[#C9A84C]" />
+              שלח לי את החישוב
+            </div>
+            <p className="text-[#4D6E88] text-xs mb-3">מלאו שם, טלפון ומייל כדי לקבל את הסיכום</p>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <input type="text" placeholder="שם מלא" value={name}
+                onChange={e => { setName(e.target.value); setLeadError(''); }}
+                className="input-dark rounded-xl py-2.5 px-3 text-sm" />
+              <input type="tel" placeholder="מס׳ פלאפון" value={phone}
+                onChange={e => { setPhone(e.target.value); setLeadError(''); }}
+                className="input-dark rounded-xl py-2.5 px-3 text-sm" />
+            </div>
+            <div className="flex gap-2 mb-2">
+              <input type="email" placeholder="your@email.com" value={email}
+                onChange={e => { setEmail(e.target.value); setLeadError(''); setSendStatus('idle'); }}
+                className="input-dark flex-1 rounded-xl py-2.5 px-3 text-sm" />
+              <button onClick={handleSendEmail} disabled={sending}
+                className={cn(
+                  'px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40',
+                  sendStatus === 'success' ? 'bg-emerald-100 text-emerald-700' :
+                  sendStatus === 'error'   ? 'bg-red-100 text-red-700' : 'btn-gold'
+                )}>
+                {sending ? <Loader2 size={14} className="animate-spin" /> :
+                 sendStatus === 'success' ? '✓ נשלח' :
+                 sendStatus === 'error'   ? '✗ שגיאה' : 'שלח'}
+              </button>
+            </div>
+            {leadError && <p className="text-red-600 text-xs text-center">{leadError}</p>}
           </div>
 
           {/* CTA */}
