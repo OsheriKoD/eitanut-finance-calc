@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronRight, MessageCircle, Phone, Mail, Key, Percent, Wallet, AlertTriangle, Lightbulb } from 'lucide-react';
+import { ChevronRight, MessageCircle, Phone, Mail, Key, Percent, Wallet, AlertTriangle, Lightbulb, Check, Loader2 } from 'lucide-react';
 import { cn, formatCurrency, whatsappUrl } from '@/lib/utils';
 import AnimatedCurrency from './AnimatedCurrency';
 
@@ -42,7 +42,10 @@ export default function PurposeCalc() {
   const [name,      setName]      = useState('');
   const [phone,     setPhone]     = useState('');
   const [email,     setEmail]     = useState('');
-  const [emailSent, setEmailSent] = useState(false);
+  const [leadCaptured, setLeadCaptured] = useState(false);
+  const [leadError,    setLeadError]    = useState('');
+  const [sending,      setSending]      = useState(false);
+  const [sendStatus,   setSendStatus]   = useState<'idle' | 'success' | 'error'>('idle');
 
   const fmt = (v: string) => v.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   const MIN = 150_000; const MAX = 10_000_000; const STEP = 50_000;
@@ -102,35 +105,54 @@ export default function PurposeCalc() {
     ];
 
     setResults({ tracks, income: pmtSpitzer / 0.40, ltv: pv ? Math.round(L / pv * 100) : null, loanNum: L });
-    setEmailSent(false);
+    setSendStatus('idle');
     setTimeout(() => {
-      document.getElementById('purpose-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      (document.getElementById('purpose-results') ?? document.getElementById('purpose-results-full'))
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 120);
   };
 
-  const handleSendEmail = () => {
-    if (!email || !results) return;
-    const rate = RATES[funder];
-    const gradeLabel  = grade === 'first' ? 'דרגה ראשונה' : 'דרגה שניה';
-    const funderLabel = funder === 'bank'  ? 'בנקאי'       : 'חוץ בנקאי';
+  const buildSummary = () => {
+    if (!results) return '';
+    const gradeLabel   = grade === 'first' ? 'דרגה ראשונה' : 'דרגה שניה';
+    const funderLabel  = funder === 'bank'  ? 'בנקאי'       : 'חוץ בנקאי';
     const purposeLabel = purpose === 'general' ? 'כל מטרה' : 'שיפוצים';
-
-    const subject = encodeURIComponent('חישוב הלוואה לכל מטרה — איתנות פיננסית');
-    const body = encodeURIComponent(
-      `שלום,\n\nלהלן תוצאות חישוב ההלוואה לכל מטרה:\n\n` +
-      (name  ? `שם: ${name}\n`   : '') +
-      (phone ? `טלפון: ${phone}\n` : '') +
+    return (
       `סכום הלוואה: ${formatCurrency(results.loanNum)}\n` +
       `פרטים: ${purposeLabel} • ${funderLabel} • ${gradeLabel} • ${years} שנה • ריבית ${rate}%\n` +
       (results.ltv ? `אחוז מימון (LTV): ${results.ltv}%\n` : '') +
       `\nהשוואת מסלולים:\n` +
       results.tracks.map(t => `• ${t.label}: ${formatCurrency(t.pmt)}/חודש`).join('\n') +
-      `\n\nהכנסה פנויה נדרשת (שפיצר): ${formatCurrency(results.income)}\n\n` +
-      `⚠️ החישוב מבוסס על ריביות משוערות בלבד.\n\n` +
-      `— ליאור נגר, יועץ משכנתאות מוסמך\n📱 052-5076504\naitanut-finance.co.il`
+      `\n\nהכנסה פנויה נדרשת (שפיצר): ${formatCurrency(results.income)}`
     );
-    window.open(`mailto:${email}?subject=${subject}&body=${body}`);
-    setEmailSent(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!email || !results) return;
+    setSending(true);
+    setSendStatus('idle');
+    try {
+      const res = await fetch('/api/send-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, email, summary: buildSummary(), toolName: 'הלוואה לכל מטרה' }),
+      });
+      setSendStatus(res.ok ? 'success' : 'error');
+    } catch {
+      setSendStatus('error');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleUnlock = () => {
+    if (!name.trim() || !phone.trim() || !email.trim()) {
+      setLeadError('נא למלא שם, טלפון ומייל כדי לראות את התוצאות');
+      return;
+    }
+    setLeadError('');
+    setLeadCaptured(true);
+    handleSendEmail();
   };
 
   const stepNum = pStep === 'details' ? 1 : pStep === 'term' ? 2 : 3;
@@ -320,9 +342,43 @@ export default function PurposeCalc() {
         </motion.div>
       )}
 
-      {/* ── Results ── */}
-      {results && (
+      {/* ── Lead gate (must submit details to reveal results) ── */}
+      {results && !leadCaptured && (
         <motion.div id="purpose-results"
+          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+          className="space-y-4 pt-6 border-t border-[#BDD8EE]">
+
+          <h4 className="text-center text-lg font-bold text-[#1A2C3D]">התוצאות שלך מוכנות!</h4>
+          <p className="text-center text-sm text-[#4D6E88]">השאירו פרטים כדי לצפות בתוצאות המלאות</p>
+
+          <div className="card-premium rounded-2xl p-5 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <input type="text" placeholder="שם מלא" value={name}
+                onChange={e => { setName(e.target.value); setLeadError(''); }}
+                className="input-dark rounded-xl py-2.5 px-3 text-sm" />
+              <input type="tel" placeholder="מס׳ פלאפון" value={phone}
+                onChange={e => { setPhone(e.target.value); setLeadError(''); }}
+                className="input-dark rounded-xl py-2.5 px-3 text-sm" />
+            </div>
+            <input type="email" placeholder="your@email.com" value={email}
+              onChange={e => { setEmail(e.target.value); setLeadError(''); setSendStatus('idle'); }}
+              className="input-dark w-full rounded-xl py-2.5 px-3 text-sm" />
+
+            {leadError && <p className="text-red-600 text-xs text-center">{leadError}</p>}
+
+            <button onClick={handleUnlock}
+              className="btn-gold w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5">
+              <Mail size={14} />
+              הצג את התוצאות שלי
+            </button>
+            <p className="text-[#4D6E88] text-xs text-center">הפרטים נשארים אצלנו בלבד ולא יועברו לגורם שלישי</p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Results ── */}
+      {results && leadCaptured && (
+        <motion.div id="purpose-results-full"
           initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
           className="space-y-4 pt-6 border-t border-[#BDD8EE]">
 
@@ -399,33 +455,15 @@ export default function PurposeCalc() {
             <span>החישוב מבוסס על ריביות משוערות בלבד. הריבית בפועל משתנה בהתאם לתיק האישי, גורם המימון ותנאי השוק.</span>
           </div>
 
-          {/* Send by email */}
-          <div className="card-premium rounded-2xl p-5">
-            <div className="flex items-center gap-2 text-[#1A2C3D] font-bold text-sm mb-1">
-              <Mail size={15} className="text-[#C9A84C]" />
-              שלח לי את החישוב
-            </div>
-            <p className="text-[#4D6E88] text-xs mb-3">הסיכום יישלח למייל שלך</p>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <input type="text" placeholder="שם מלא" value={name}
-                onChange={e => setName(e.target.value)}
-                className="input-dark rounded-xl py-2.5 px-3 text-sm" />
-              <input type="tel" placeholder="מס׳ פלאפון" value={phone}
-                onChange={e => setPhone(e.target.value)}
-                className="input-dark rounded-xl py-2.5 px-3 text-sm" />
-            </div>
-            <div className="flex gap-2">
-              <input type="email" placeholder="your@email.com" value={email}
-                onChange={e => { setEmail(e.target.value); setEmailSent(false); }}
-                className="input-dark flex-1 rounded-xl py-2.5 px-3 text-sm" />
-              <button onClick={handleSendEmail} disabled={!email}
-                className={cn(
-                  'px-4 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40',
-                  emailSent ? 'bg-emerald-100 text-emerald-700' : 'btn-gold'
-                )}>
-                {emailSent ? '✓ נשלח' : 'שלח'}
-              </button>
-            </div>
+          {/* Send status */}
+          <div className={cn('flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold',
+            sendStatus === 'success' ? 'bg-emerald-100 text-emerald-700' :
+            sendStatus === 'error'   ? 'bg-red-100 text-red-700' : 'bg-[rgba(201,168,76,0.08)] text-[#4D6E88]'
+          )}>
+            {sending ? <><Loader2 size={14} className="animate-spin" /> שולח סיכום למייל...</> :
+             sendStatus === 'success' ? <><Check size={14} /> הסיכום נשלח למייל שלך</> :
+             sendStatus === 'error'   ? <><AlertTriangle size={14} /> שליחת הסיכום למייל נכשלה, נסו שוב מאוחר יותר</> :
+             null}
           </div>
 
           {/* CTA */}

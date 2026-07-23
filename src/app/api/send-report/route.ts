@@ -5,18 +5,18 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, phone, email, pdfBase64, summary } = await req.json();
+    const { name, phone, email, pdfBase64, summary, toolName } = await req.json();
 
-    if (!email || !pdfBase64) {
+    if (!email || !summary) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+    const label = toolName || 'משכנתא';
 
     const { error: userMailError } = await resend.emails.send({
       from: 'איתנות פיננסית <info@eitanut-finance.co.il>',
       to: email,
-      subject: 'דוח משכנתא מאיתנות פיננסית',
+      subject: `דוח ${label} מאיתנות פיננסית`,
       html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1A2C3D;">
           <div style="background: linear-gradient(135deg, #1A2C3D, #2A4560); padding: 32px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
           </div>
           <div style="background: #f8fbff; padding: 32px; border: 1px solid #BDD8EE;">
             <p style="font-size: 16px; margin-bottom: 8px;">שלום${name ? ' ' + name : ''},</p>
-            <p style="color: #4D6E88; line-height: 1.6;">מצורף דוח חישוב המשכנתא שלך מאיתנות פיננסית.</p>
+            <p style="color: #4D6E88; line-height: 1.6;">${pdfBase64 ? `מצורף דוח ${label} שלך מאיתנות פיננסית.` : `להלן סיכום חישוב ${label} שלך מאיתנות פיננסית.`}</p>
             <div style="background: #fff; border: 1px solid #BDD8EE; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 14px; color: #4D6E88; line-height: 1.8; white-space: pre-line;">${summary}</div>
             <div style="background: #fffbf0; border: 1px solid #C9A84C40; border-radius: 8px; padding: 16px; margin: 20px 0;">
               <p style="color: #A07C28; font-size: 13px; margin: 0;">⚠️ החישוב מבוסס על הנחות ממוצעות. לייעוץ מדויק ואישי פנה לליאור נגר.</p>
@@ -39,12 +39,14 @@ export async function POST(req: NextRequest) {
           </div>
         </div>
       `,
-      attachments: [
-        {
-          filename: `דוח-משכנתא-${name ? name.replace(/\s/g, '-') : 'איתנות'}.pdf`,
-          content: pdfBuffer,
-        },
-      ],
+      ...(pdfBase64 && {
+        attachments: [
+          {
+            filename: `דוח-${label}-${name ? name.replace(/\s/g, '-') : 'איתנות'}.pdf`,
+            content: Buffer.from(pdfBase64, 'base64'),
+          },
+        ],
+      }),
     });
 
     if (userMailError) {
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
     const { error: leadMailError } = await resend.emails.send({
       from: 'מחשבון משכנתא <info@eitanut-finance.co.il>',
       to: 'eitanut.finance@gmail.com',
-      subject: `ליד חדש — ${name || 'לא ידוע'} ביקש דוח משכנתא`,
+      subject: `ליד חדש — ${name || 'לא ידוע'} ביקש דוח ${label}`,
       html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; color: #1A2C3D; padding: 24px;">
           <h2 style="color: #C9A84C;">ליד חדש מהמחשבון 🎯</h2>
