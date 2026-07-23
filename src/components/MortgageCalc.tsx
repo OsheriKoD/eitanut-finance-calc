@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Home, Wallet, PiggyBank, TrendingUp, RefreshCw,
-  ChevronRight, MessageCircle, Phone, Mail, Download, Send, Loader2, AlertTriangle, Check, Lightbulb,
+  ChevronRight, MessageCircle, Phone, Mail, Send, Loader2, AlertTriangle, Check, Lightbulb,
 } from 'lucide-react';
 import { cn, formatCurrency, whatsappUrl } from '@/lib/utils';
 import AnimatedCurrency from './AnimatedCurrency';
@@ -232,16 +232,6 @@ export default function MortgageCalc() {
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, Math.min(pdfHeight, pdf.internal.pageSize.getHeight()));
     return { blob: pdf.output('blob'), base64: pdf.output('datauristring').split(',')[1] };
-  };
-
-  const handleDownload = async () => {
-    const { blob } = await generatePDF();
-    const url = URL.createObjectURL(blob);
-    const a   = document.createElement('a');
-    a.href = url;
-    a.download = `דוח-משכנתא${name ? '-' + name : ''}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const handleSendEmail = async () => {
@@ -636,24 +626,17 @@ export default function MortgageCalc() {
               onChange={e => { setEmail(e.target.value); setSendStatus('idle'); }}
               className="input-dark w-full rounded-xl py-2.5 px-3 text-sm" />
 
-            <div className="flex gap-2">
-              <button onClick={handleDownload} disabled={!results}
-                className="btn-outline-gold flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-40">
-                <Download size={14} />
-                הורד PDF
-              </button>
-              <button onClick={handleSendEmail} disabled={!email || sending}
-                className={cn(
-                  'flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-40',
-                  sendStatus === 'success' ? 'bg-emerald-100 text-emerald-700' :
-                  sendStatus === 'error'   ? 'bg-red-100 text-red-700' : 'btn-gold'
-                )}>
-                {sending ? <Loader2 size={14} className="animate-spin" /> :
-                 sendStatus === 'success' ? '✓ נשלח!' :
-                 sendStatus === 'error'   ? '✗ שגיאה' :
-                 <><Send size={14} /> שלח למייל</>}
-              </button>
-            </div>
+            <button onClick={handleSendEmail} disabled={!email || sending}
+              className={cn(
+                'w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 transition-all disabled:opacity-40',
+                sendStatus === 'success' ? 'bg-emerald-100 text-emerald-700' :
+                sendStatus === 'error'   ? 'bg-red-100 text-red-700' : 'btn-gold'
+              )}>
+              {sending ? <Loader2 size={14} className="animate-spin" /> :
+               sendStatus === 'success' ? '✓ נשלח!' :
+               sendStatus === 'error'   ? '✗ שגיאה' :
+               <><Send size={14} /> שלח למייל</>}
+            </button>
           </div>
 
           {/* CTA */}
