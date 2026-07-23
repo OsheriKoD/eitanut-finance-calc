@@ -737,7 +737,7 @@ export default function MortgageCalc() {
             {/* Footer */}
             <div style={{ background: '#1A2C3D', borderRadius: '10px', padding: '20px', textAlign: 'center' }}>
               <div style={{ color: '#C9A84C', fontWeight: 'bold', fontSize: '16px', marginBottom: '6px' }}>ליאור נגר | יועץ משכנתאות מוסמך</div>
-              <div style={{ color: '#BDD8EE', fontSize: '13px' }}>📱 052-5076504 &nbsp;|&nbsp; ✉️ Lior@eitanut-finance.co.il</div>
+              <div style={{ color: '#BDD8EE', fontSize: '13px' }}>📱 052-5076504 &nbsp;|&nbsp; ✉️ eitanut.finance@gmail.com</div>
             </div>
           </div>
         </div>

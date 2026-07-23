@@ -11,7 +11,7 @@ export function formatCurrency(value: number): string {
 }
 
 export const PHONE = '+972525076504';
-export const EMAIL = 'Lior@eitanut-finance.co.il';
+export const EMAIL = 'eitanut.finance@gmail.com';
 export const WA_MSG = 'היי ליאור, אשמח לקבל מידע נוסף על משכנתא.';
 
 export function whatsappUrl(msg = WA_MSG): string {

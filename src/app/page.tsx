@@ -289,12 +289,12 @@ export default function Home() {
               <div className="text-stone-400 text-sm">מענה מהיר</div>
             </a>
 
-            <a href="mailto:Lior@eitanut-finance.co.il"
+            <a href="mailto:eitanut.finance@gmail.com"
               className="card-premium rounded-2xl p-6 group hover:border-[rgba(201,168,76,0.5)] transition-all text-center">
               <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-4 group-hover:bg-amber-100 transition-colors">
                 <Mail size={22} className="text-[#C9A84C]" />
               </div>
-              <div className="text-stone-800 font-semibold mb-1">Lior@eitanut-finance.co.il</div>
+              <div className="text-stone-800 font-semibold mb-1">eitanut.finance@gmail.com</div>
               <div className="text-stone-400 text-sm">אימייל</div>
             </a>
           </motion.div>
@@ -372,7 +372,7 @@ export default function Home() {
               <div className="space-y-3">
                 {[
                   { icon: <Phone size={14} className="text-[#C9A84C]" />, text: '052-5076504', href: 'tel:+972525076504' },
-                  { icon: <Mail  size={14} className="text-[#C9A84C]" />, text: 'Lior@eitanut-finance.co.il', href: 'mailto:Lior@eitanut-finance.co.il' },
+                  { icon: <Mail  size={14} className="text-[#C9A84C]" />, text: 'eitanut.finance@gmail.com', href: 'mailto:eitanut.finance@gmail.com' },
                   { icon: <MapPin size={14} className="text-[#C9A84C]" />, text: 'ישראל', href: null },
                 ].map((item) => (
                   <div key={item.text} className="flex items-center gap-3">

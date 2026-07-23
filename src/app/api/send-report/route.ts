@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
             </div>
           </div>
           <div style="background: #1A2C3D; padding: 20px; border-radius: 0 0 12px 12px; text-align: center;">
-            <p style="color: #BDD8EE; font-size: 13px; margin: 0;">ליאור נגר | 052-5076504 | Lior@eitanut-finance.co.il</p>
+            <p style="color: #BDD8EE; font-size: 13px; margin: 0;">ליאור נגר | 052-5076504 | eitanut.finance@gmail.com</p>
           </div>
         </div>
       `,
